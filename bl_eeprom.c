@@ -63,6 +63,168 @@ image_info eeprom_get_golden_info() {
     return out;
 }
 
+int eeprom_set_csp_golden_key(uint32_t key) {
+    csp_key_info set = {
+        .exists = EXISTS_FLAG,
+        .status = (csp_key_status) ACTIVE,
+        .key = key,
+        .crc = crc16((char *) &key, sizeof(key))
+    };
+
+    TI_Fee_WriteSync(CSP_GOLDEN_KEY_BLOCKNUMBER, (uint8_t *)&set);
+    TI_FeeJobResultType res = TI_Fee_GetJobResult(0);
+    if (res != JOB_OK) {
+        return -1;
+    }
+    return 0;
+}
+
+int eeprom_set_csp_golden_key_active() {
+    csp_key_info set = {0};
+    TI_Fee_ReadSync(CSP_GOLDEN_KEY_BLOCKNUMBER, CSP_KEY_STATUS_OFFSET, (uint8_t *)(&set), CSP_KEY_ITEM_LEN);
+    TI_FeeJobResultType res = TI_Fee_GetJobResult(0);
+    if (res != JOB_OK) {
+        return -1;
+    }
+    if (set.status == ACTIVE) {
+        return 0;
+    }
+    set.status = ACTIVE;
+    TI_Fee_WriteSync(CSP_GOLDEN_KEY_BLOCKNUMBER, (uint8_t *)&set);
+    TI_FeeJobResultType res = TI_Fee_GetJobResult(0);
+    if (res != JOB_OK) {
+        return -1;
+    }
+    return eeprom_set_csp_secondary_key_inactive();
+}
+
+int eeprom_set_csp_golden_key_inactive() {
+    csp_key_info set = {0};
+    TI_Fee_ReadSync(CSP_GOLDEN_KEY_BLOCKNUMBER, CSP_KEY_STATUS_OFFSET, (uint8_t *)(&set), CSP_KEY_ITEM_LEN);
+    TI_FeeJobResultType res = TI_Fee_GetJobResult(0);
+    if (res != JOB_OK) {
+        return -1;
+    }
+    if (set.status == INACTIVE) {
+        return 0;
+    }
+    set.status = INACTIVE;
+    TI_Fee_WriteSync(CSP_GOLDEN_KEY_BLOCKNUMBER, (uint8_t *)&set);
+    TI_FeeJobResultType res = TI_Fee_GetJobResult(0);
+    if (res != JOB_OK) {
+        return -1;
+    }
+    return eeprom_set_csp_secondary_key_active();
+}
+
+int eeprom_set_csp_secondary_key(uint32_t key) {
+    csp_key_info set = {
+        .exists = EXISTS_FLAG,
+        .status = (csp_key_status) INACTIVE,
+        .key = key,
+        .crc = crc16((char *) &key, sizeof(key))
+    };
+
+    TI_Fee_WriteSync(CSP_SECONDARY_KEY_BLOCKNUMBER, (uint8_t *)&set);
+    TI_FeeJobResultType res = TI_Fee_GetJobResult(0);
+    if (res != JOB_OK) {
+        return -1;
+    }
+    return 0;
+}
+
+int eeprom_set_csp_secondary_key_active() {
+    csp_key_info set = {0};
+    TI_Fee_ReadSync(CSP_SECONDARY_KEY_BLOCKNUMBER, CSP_KEY_STATUS_OFFSET, (uint8_t *)(&set), CSP_KEY_ITEM_LEN);
+    TI_FeeJobResultType res = TI_Fee_GetJobResult(0);
+    if (res != JOB_OK) {
+        return -1;
+    }
+    if (set.status == ACTIVE) {
+        return 0;
+    }
+    set.status = ACTIVE;
+    TI_Fee_WriteSync(CSP_SECONDARY_KEY_BLOCKNUMBER, (uint8_t *)&set);
+    TI_FeeJobResultType res = TI_Fee_GetJobResult(0);
+    if (res != JOB_OK) {
+        return -1;
+    }
+    return eeprom_set_csp_golden_key_inactive();
+}
+
+int eeprom_set_csp_secondary_key_inactive() {
+    csp_key_info set = {0};
+    TI_Fee_ReadSync(CSP_SECONDARY_KEY_BLOCKNUMBER, CSP_KEY_STATUS_OFFSET, (uint8_t *)(&set), CSP_KEY_ITEM_LEN);
+    TI_FeeJobResultType res = TI_Fee_GetJobResult(0);
+    if (res != JOB_OK) {
+        return -1;
+    }
+    if (set.status == INACTIVE) {
+        return 0;
+    }
+    set.status = INACTIVE;
+    TI_Fee_WriteSync(CSP_SECONDARY_KEY_BLOCKNUMBER, (uint8_t *)&set);
+    TI_FeeJobResultType res = TI_Fee_GetJobResult(0);
+    if (res != JOB_OK) {
+        return -1;
+    }
+    return eeprom_set_csp_golden_key_active();
+}
+
+/**
+ * @brief The the golden CSP key
+ * 
+ * @return csp_key_info 
+ */
+csp_key_info eeprom_get_csp_golden_key() {
+    csp_key_info out = {0};
+    TI_Fee_ReadSync(CSP_GOLDEN_KEY_BLOCKNUMBER, CSP_KEY_STATUS_OFFSET, (uint8_t *)(&out), CSP_KEY_ITEM_LEN);
+    TI_FeeJobResultType res = TI_Fee_GetJobResult(0);
+    if (res != JOB_OK) {
+        out.status = RDERR;
+    } else if (out.exists != EXISTS_FLAG) {
+        out.status = DNE;
+    } else if (out.crc != crc16((char *)&out.key, sizeof(out.key))) {
+        out.status = CRCERR;
+    }
+    return out;
+}
+
+/**
+ * @brief Get the secondary CSP key
+ * 
+ * @return csp_key_info 
+ */
+csp_key_info eeprom_get_csp_secondary_key() {
+    csp_key_info out = {0};
+    TI_Fee_ReadSync(CSP_SECONDARY_KEY_BLOCKNUMBER, CSP_KEY_STATUS_OFFSET, (uint8_t *)(&out), CSP_KEY_ITEM_LEN);
+    TI_FeeJobResultType res = TI_Fee_GetJobResult(0);
+    if (res != JOB_OK) {
+        out.status = RDERR;
+    } else if (out.exists != EXISTS_FLAG) {
+        out.status = DNE;
+    } else if (out.crc != crc16((char *)&out.key, sizeof(out.key))) {
+        out.status = CRCERR;
+    }
+    return out;
+}
+
+/**
+ * @brief Get the active csp key object
+ * If there is a secondary key that is active, it will always be returned. Otherwise, active or not, the information at the
+ * golden key will be returned.
+ * 
+ * @return uint32_t the key
+ */
+uint32_t get_active_csp_key() {
+    csp_key_info key = eeprom_get_csp_secondary_key();
+    if (key.status == ACTIVE) {
+        return key.key;
+    }
+    key = eeprom_get_csp_golden_key();
+    return key.key; // return regardless of status so that the golden key is always default.
+}
+
 bool verify_application() {
     image_info app_info = {0};
     app_info = eeprom_get_app_info();

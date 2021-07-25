@@ -21,6 +21,14 @@
 #define GOLD_STATUS_OFFSET 0
 #define GOLD_STATUS_LEN sizeof(image_info)
 
+#define CSP_GOLDEN_KEY_BLOCKNUMBER 4
+
+#define CSP_SECONDARY_KEY_BLOCKNUMBER 5
+
+#define CSP_KEY_STATUS_OFFSET 0
+
+#define CSP_KEY_ITEM_LEN sizeof(csp_key_info)
+
 #define GOLD_MINIMUM_ADDR 0x00018000
 #define GOLD_DEFAULT_ADDR 0x00018000
 #define GOLD_START_BANK 0
@@ -37,11 +45,26 @@
 
 // Representation of data which will be stored in FEE flash
 typedef struct __attribute__((packed)) {
-    uint32_t exists; // 1 for exists, 0 for does not exist
+    uint32_t exists;
     uint32_t size;
     uint32_t addr;
     uint16_t crc;
 } image_info;
+
+typedef enum {
+    ACTIVE      = 'A',
+    INACTIVE    = 'I',
+    RDERR       = 1,
+    DNE         = 2,
+    CRCERR      = 4
+} csp_key_status;
+
+typedef struct __attribute__((packed)) {
+    uint32_t exists;
+    char status;
+    uint32_t key;
+    uint16_t crc;
+} csp_key_info;
 
 bool eeprom_init();
 
